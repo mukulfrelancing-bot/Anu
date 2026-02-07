@@ -1,0 +1,169 @@
+[file name]: .github/workflows/deploy.yml
+[file content begin]
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          # Create minimal package.json if missing
+          if [ ! -f package.json ]; then
+            echo '{
+              "name": "anu-buddhu-sanctuary",
+              "private": true,
+              "version": "1.0.0",
+              "type": "module",
+              "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "preview": "vite preview"
+              },
+              "dependencies": {
+                "react": "^18.2.0",
+                "react-dom": "^18.2.0",
+                "lucide-react": "^0.263.1"
+              },
+              "devDependencies": {
+                "@types/react": "^18.0.28",
+                "@types/react-dom": "^18.0.11",
+                "@vitejs/plugin-react": "^4.0.0",
+                "typescript": "^5.0.2",
+                "vite": "^4.4.5"
+              }
+            }' > package.json
+          fi
+          
+          # Install without package-lock.json
+          npm install --no-package-lock
+      
+      - name: Create missing config files
+        run: |
+          # Create vite.config.js (simpler than .ts)
+          echo "import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  base: '/anu-buddhu-sanctuary/',
+  build: {
+    outDir: 'dist'
+  }
+})" > vite.config.js
+          
+          # Create tsconfig.json
+          echo '{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["index.tsx"]
+}' > tsconfig.json
+          
+          # Create tailwind.config.js
+          echo 'module.exports = {
+  content: ["./index.html", "./**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}' > tailwind.config.js
+          
+          # Create postcss.config.js
+          echo 'module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}' > postcss.config.js
+          
+          # Create index.css
+          echo '@tailwind base;
+@tailwind components;
+@tailwind utilities;' > index.css
+      
+      - name: Fix index.tsx if needed
+        run: |
+          # Check if index.tsx exists, if not create minimal version
+          if [ ! -f index.tsx ]; then
+            echo 'import React from "react"
+import ReactDOM from "react-dom/client"
+import "./index.css"
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center">
+      <div className="text-center p-8">
+        <h1 className="text-5xl font-bold text-rose-600 mb-4">Anu & Buddhu</h1>
+        <p className="text-xl text-gray-700">The Psychological Sanctuary</p>
+        <p className="mt-8 text-gray-600">🚀 Coming Soon...</p>
+      </div>
+    </div>
+  )
+}
+
+const root = document.getElementById("root")
+if (root) {
+  ReactDOM.createRoot(root).render(<App />)
+}' > index.tsx
+          fi
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+[file content end]
