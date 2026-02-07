@@ -5,7 +5,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://YOUR_USERNAME.github.io/anu-buddhu-sanctuary",
+  "homepage": "https://mukulfrelancing-bot.github.io/anu-buddhu-sanctuary",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
