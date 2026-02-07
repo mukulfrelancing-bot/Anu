@@ -1,20 +1,14 @@
-[file name]: .github/workflows/deploy.yml
-[file content begin]
-name: Deploy to GitHub Pages
+name: Deploy Complete Website
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -26,126 +20,386 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '18'
           cache: 'npm'
       
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
-          # Create minimal package.json if missing
-          if [ ! -f package.json ]; then
-            echo '{
-              "name": "anu-buddhu-sanctuary",
-              "private": true,
-              "version": "1.0.0",
-              "type": "module",
-              "scripts": {
-                "dev": "vite",
-                "build": "vite build",
-                "preview": "vite preview"
-              },
-              "dependencies": {
-                "react": "^18.2.0",
-                "react-dom": "^18.2.0",
-                "lucide-react": "^0.263.1"
-              },
-              "devDependencies": {
-                "@types/react": "^18.0.28",
-                "@types/react-dom": "^18.0.11",
-                "@vitejs/plugin-react": "^4.0.0",
-                "typescript": "^5.0.2",
-                "vite": "^4.4.5"
-              }
-            }' > package.json
-          fi
+          # First, create a proper package.json
+          cat > package.json << 'EOF'
+          {
+            "name": "anu-buddhu-sanctuary",
+            "private": true,
+            "version": "1.0.0",
+            "type": "module",
+            "scripts": {
+              "dev": "vite",
+              "build": "vite build",
+              "preview": "vite preview"
+            },
+            "dependencies": {
+              "react": "^18.2.0",
+              "react-dom": "^18.2.0",
+              "lucide-react": "^0.263.1",
+              "@google/genai": "^1.40.0"
+            },
+            "devDependencies": {
+              "@types/react": "^18.2.0",
+              "@types/react-dom": "^18.2.0",
+              "@vitejs/plugin-react": "^4.0.0",
+              "typescript": "^5.0.0",
+              "vite": "^4.4.0",
+              "tailwindcss": "^3.3.0",
+              "autoprefixer": "^10.4.0",
+              "postcss": "^8.4.0"
+            }
+          }
+          EOF
           
-          # Install without package-lock.json
-          npm install --no-package-lock
+          # Install with force to avoid lockfile issues
+          npm install --legacy-peer-deps --no-audit
       
-      - name: Create missing config files
+      - name: Create Config Files
         run: |
-          # Create vite.config.js (simpler than .ts)
-          echo "import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+          # Vite Config
+          cat > vite.config.js << 'EOF'
+          import { defineConfig } from 'vite'
+          import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [react()],
-  base: '/anu-buddhu-sanctuary/',
-  build: {
-    outDir: 'dist'
-  }
-})" > vite.config.js
+          export default defineConfig({
+            plugins: [react()],
+            base: '/anu-buddhu-sanctuary/',
+            build: {
+              outDir: 'dist',
+              rollupOptions: {
+                output: {
+                  manualChunks: {
+                    'react-vendor': ['react', 'react-dom'],
+                    'ui-vendor': ['lucide-react']
+                  }
+                }
+              }
+            }
+          })
+          EOF
           
-          # Create tsconfig.json
-          echo '{
-  "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
-  },
-  "include": ["index.tsx"]
-}' > tsconfig.json
+          # Tailwind Config
+          cat > tailwind.config.js << 'EOF'
+          /** @type {import('tailwindcss').Config} */
+          export default {
+            content: [
+              "./index.html",
+              "./**/*.{js,ts,jsx,tsx}",
+            ],
+            theme: {
+              extend: {
+                fontFamily: {
+                  'serif': ['Playfair Display', 'serif'],
+                  'cursive': ['Dancing Script', 'cursive'],
+                  'elegant': ['Great Vibes', 'cursive'],
+                },
+                animation: {
+                  'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+                },
+                keyframes: {
+                  heartbeat: {
+                    '0%, 100%': { transform: 'scale(1)' },
+                    '50%': { transform: 'scale(1.1)' },
+                  }
+                }
+              },
+            },
+            plugins: [],
+          }
+          EOF
           
-          # Create tailwind.config.js
-          echo 'module.exports = {
-  content: ["./index.html", "./**/*.{js,ts,jsx,tsx}"],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}' > tailwind.config.js
+          # PostCSS Config
+          cat > postcss.config.js << 'EOF'
+          export default {
+            plugins: {
+              tailwindcss: {},
+              autoprefixer: {},
+            },
+          }
+          EOF
           
-          # Create postcss.config.js
-          echo 'module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}' > postcss.config.js
+          # TypeScript Config
+          cat > tsconfig.json << 'EOF'
+          {
+            "compilerOptions": {
+              "target": "ES2020",
+              "useDefineForClassFields": true,
+              "lib": ["ES2020", "DOM", "DOM.Iterable"],
+              "module": "ESNext",
+              "skipLibCheck": true,
+              "moduleResolution": "bundler",
+              "allowImportingTsExtensions": true,
+              "resolveJsonModule": true,
+              "isolatedModules": true,
+              "noEmit": true,
+              "jsx": "react-jsx",
+              "strict": true,
+              "noUnusedLocals": false,
+              "noUnusedParameters": false,
+              "noFallthroughCasesInSwitch": true
+            },
+            "include": ["index.tsx"]
+          }
+          EOF
           
           # Create index.css
-          echo '@tailwind base;
-@tailwind components;
-@tailwind utilities;' > index.css
+          cat > index.css << 'EOF'
+          @tailwind base;
+          @tailwind components;
+          @tailwind utilities;
+
+          body {
+            margin: 0;
+            padding: 0;
+            background-color: #fffafa;
+          }
+          
+          .glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+          }
+          EOF
       
-      - name: Fix index.tsx if needed
+      - name: Create Optimized index.tsx
         run: |
-          # Check if index.tsx exists, if not create minimal version
-          if [ ! -f index.tsx ]; then
-            echo 'import React from "react"
-import ReactDOM from "react-dom/client"
-import "./index.css"
+          cat > index.tsx << 'EOF'
+          import React, { useState, useEffect } from 'react'
+          import { createRoot } from 'react-dom/client'
+          import { Heart, Cat, Brain, Sparkle, MessageCircle, Music, X, Play, Quote, Zap, Loader2, ImageIcon, HeartHandshake, Fingerprint } from 'lucide-react'
+          import './index.css'
 
-function App() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center">
-      <div className="text-center p-8">
-        <h1 className="text-5xl font-bold text-rose-600 mb-4">Anu & Buddhu</h1>
-        <p className="text-xl text-gray-700">The Psychological Sanctuary</p>
-        <p className="mt-8 text-gray-600">🚀 Coming Soon...</p>
-      </div>
-    </div>
-  )
-}
+          const KITTENS = [
+            { 
+              url: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=400&auto=format&fit=crop", 
+              name: "Snowball"
+            },
+            { 
+              url: "https://images.unsplash.com/photo-1573865662567-57ef5b67bd00?q=80&w=400&auto=format&fit=crop", 
+              name: "Cotton"
+            },
+            { 
+              url: "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?q=80&w=400&auto=format&fit=crop", 
+              name: "Marshmallow"
+            }
+          ]
 
-const root = document.getElementById("root")
-if (root) {
-  ReactDOM.createRoot(root).render(<App />)
-}' > index.tsx
-          fi
+          const VALENTINE_WEEK = [
+            { day: "Feb 7", name: "Rose Day", color: "bg-rose-500", shayari: "Anu, aap hamari zindagi ka sabse khoobsurat gulab ho.", song: "Gulabi Aankhen" },
+            { day: "Feb 8", name: "Propose Day", color: "bg-pink-500", shayari: "Will you be my Valentine forever, Anu?", song: "Raabta" },
+            { day: "Feb 9", name: "Chocolate Day", color: "bg-orange-900", shayari: "Mithaas dosti ki chocolate se zyada hoti hai.", song: "Tum Hi Ho" },
+            { day: "Feb 10", name: "Teddy Day", color: "bg-amber-700", shayari: "Teddy bear ki tarah pyari ho tum.", song: "Iktara" },
+            { day: "Feb 11", name: "Promise Day", color: "bg-indigo-500", shayari: "Vaada raha ki hamesha saath nibhayenge.", song: "Jeene Laga Hoon" },
+            { day: "Feb 12", name: "Hug Day", color: "bg-sky-500", shayari: "Ek bar to mujhe seene se laga lo.", song: "Humsafar" },
+            { day: "Feb 13", name: "Kiss Day", color: "bg-red-500", shayari: "Labon pe sirf tumhara hi naam ho.", song: "Pee Loon" },
+            { day: "Feb 14", name: "Valentine's Day", color: "bg-rose-600", shayari: "Anu, meri har khushi ki wajah ho tum.", song: "Kesariya" }
+          ]
+
+          const BiometricEntry = ({ onUnlock }) => {
+            const [scanning, setScanning] = useState(false)
+            const startScan = () => {
+              setScanning(true)
+              setTimeout(() => onUnlock(), 2000)
+            }
+
+            return (
+              <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+                <div onClick={startScan} className="cursor-pointer">
+                  <div className="w-32 h-32 rounded-full border-2 border-white/10 flex items-center justify-center">
+                    <Fingerprint size={64} className={scanning ? "text-rose-500 animate-pulse" : "text-white/20"} />
+                  </div>
+                </div>
+                <h2 className="mt-8 text-white/50 uppercase text-sm">
+                  {scanning ? 'Scanning...' : 'Click to Enter Sanctuary'}
+                </h2>
+              </div>
+            )
+          }
+
+          const App = () => {
+            const [isUnlocked, setIsUnlocked] = useState(false)
+            const [activeDay, setActiveDay] = useState(null)
+            const [whisper, setWhisper] = useState('')
+
+            const showWhisper = (text) => {
+              setWhisper(text)
+              setTimeout(() => setWhisper(''), 3000)
+            }
+
+            if (!isUnlocked) return <BiometricEntry onUnlock={() => setIsUnlocked(true)} />
+
+            return (
+              <div className="min-h-screen bg-[#fffafa]">
+                {/* Navigation */}
+                <nav className="p-6 flex justify-between items-center border-b border-rose-100">
+                  <div className="flex items-center gap-3">
+                    <Cat className="text-rose-500" />
+                    <h1 className="text-2xl font-bold text-rose-500">Anu & Buddhu</h1>
+                  </div>
+                  <button onClick={() => showWhisper('Welcome home, Anu 💖')}>
+                    <MessageCircle className="text-rose-400" />
+                  </button>
+                </nav>
+
+                {/* Hero Section */}
+                <header className="text-center py-16 px-4">
+                  <div className="mb-8">
+                    <Heart className="w-24 h-24 text-rose-500 fill-rose-500 mx-auto animate-heartbeat" />
+                  </div>
+                  <h1 className="text-5xl md:text-7xl font-serif text-gray-900 mb-6">
+                    The <span className="font-elegant text-rose-500">Anu</span> Effect
+                  </h1>
+                  <p className="text-xl text-gray-600 max-w-2xl mx-auto italic">
+                    "Where psychology meets deep emotion. A digital neural pathway dedicated to you."
+                  </p>
+                </header>
+
+                {/* Main Content */}
+                <main className="max-w-6xl mx-auto px-4 pb-20">
+                  {/* Psychology Section */}
+                  <section className="glass rounded-3xl p-8 mb-12">
+                    <div className="flex items-center gap-4 mb-6">
+                      <Brain className="text-rose-500 w-8 h-8" />
+                      <h2 className="text-2xl font-bold">Psychology Corner</h2>
+                    </div>
+                    <div className="bg-rose-50 rounded-2xl p-6">
+                      <Quote className="text-rose-300 mb-4" />
+                      <p className="text-gray-700 italic">
+                        "Anu, your emotional intelligence isn't just knowledge—it's your soul's language. 
+                        Every thought of you triggers joy in my neural pathways."
+                      </p>
+                    </div>
+                  </section>
+
+                  {/* Valentine Week */}
+                  <section className="mb-12">
+                    <h2 className="text-3xl font-serif text-center mb-8">Valentine Week Rituals</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {VALENTINE_WEEK.map((day, i) => (
+                        <div key={i} onClick={() => setActiveDay(day)} className="glass rounded-2xl p-4 text-center cursor-pointer hover:shadow-lg transition">
+                          <div className={`w-12 h-12 ${day.color} rounded-xl text-white flex items-center justify-center mx-auto mb-3`}>
+                            {day.day}
+                          </div>
+                          <h3 className="font-bold">{day.name}</h3>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* Kittens */}
+                  <section className="bg-gray-900 rounded-3xl p-8">
+                    <h2 className="text-3xl text-white text-center mb-8">Anu's Feline Friends</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {KITTENS.map((kitten, i) => (
+                        <div key={i} className="text-center">
+                          <img src={kitten.url} alt={kitten.name} className="w-48 h-48 rounded-2xl object-cover mx-auto mb-4" />
+                          <h3 className="text-white text-xl">{kitten.name}</h3>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </main>
+
+                {/* Day Modal */}
+                {activeDay && (
+                  <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+                    <div className="glass rounded-3xl p-8 max-w-md w-full">
+                      <button onClick={() => setActiveDay(null)} className="float-right">
+                        <X className="text-gray-500" />
+                      </button>
+                      <div className={`w-16 h-16 ${activeDay.color} rounded-2xl flex items-center justify-center mx-auto mb-6`}>
+                        <HeartHandshake className="text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-center mb-4">{activeDay.name}</h3>
+                      <p className="text-gray-700 italic text-center mb-6">{activeDay.shayari}</p>
+                      <div className="flex items-center justify-center gap-2 text-gray-600">
+                        <Music className="w-4 h-4" />
+                        <span>{activeDay.song}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Whisper Message */}
+                {whisper && (
+                  <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 glass px-6 py-3 rounded-full animate-pulse">
+                    <div className="flex items-center gap-2">
+                      <Sparkle className="text-rose-500" />
+                      <span className="font-cursive text-lg">{whisper}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <footer className="fixed bottom-0 w-full p-4">
+                  <div className="glass rounded-full p-2 max-w-xs mx-auto flex justify-around">
+                    <button onClick={() => showWhisper('Memories gallery opening...')}>
+                      <ImageIcon className="text-gray-400" />
+                    </button>
+                    <button className="bg-rose-500 p-3 rounded-full -mt-4">
+                      <Heart className="text-white" />
+                    </button>
+                    <button onClick={() => showWhisper('Meow! 🐱')}>
+                      <Cat className="text-gray-400" />
+                    </button>
+                  </div>
+                </footer>
+              </div>
+            )
+          }
+
+          const root = document.getElementById('root')
+          if (root) {
+            createRoot(root).render(<App />)
+          }
+          EOF
       
-      - name: Build
+      - name: Create index.html
+        run: |
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Anu & Buddhu | The Psychological Sanctuary</title>
+              <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Dancing+Script:wght@400..700&family=Inter:wght@300;400;600&family=Great+Vibes&display=swap" rel="stylesheet">
+              <link rel="stylesheet" href="./index.css">
+              <style>
+                body { margin: 0; padding: 0; background: #fffafa; }
+                .glass { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(20px); }
+                .font-elegant { font-family: 'Great Vibes', cursive; }
+                .font-cursive { font-family: 'Dancing Script', cursive; }
+                @keyframes heartbeat {
+                  0%, 100% { transform: scale(1); }
+                  50% { transform: scale(1.1); }
+                }
+                .animate-heartbeat { animation: heartbeat 1.5s ease-in-out infinite; }
+              </style>
+          </head>
+          <body>
+              <div id="root">
+                  <div style="position: fixed; inset: 0; background: #fffafa; display: flex; align-items: center; justify-content: center;">
+                      <div style="text-align: center;">
+                          <div style="width: 80px; height: 80px; background: #f43f5e; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; animation: heartbeat 1.5s infinite;">
+                              <span style="color: white; font-size: 40px;">❤️</span>
+                          </div>
+                          <p style="color: #9f1239; font-family: 'Dancing Script'; font-size: 24px;">
+                              Loading your sanctuary...
+                          </p>
+                      </div>
+                  </div>
+              </div>
+              <script type="module" src="./index.tsx"></script>
+          </body>
+          </html>
+          EOF
+      
+      - name: Build Project
         run: npm run build
       
       - name: Setup Pages
@@ -166,4 +420,3 @@ if (root) {
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-[file content end]
