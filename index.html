@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anu & Buddhu | The Psychological Sanctuary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Dancing+Script:wght@400..700&family=Inter:wght@300;400;600&family=Great+Vibes&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            background-color: #fffafa;
+            -webkit-font-smoothing: antialiased;
+        }
+        ::selection {
+            background: #f43f5e;
+            color: white;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fffafa;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fecdd3;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fb7185;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .font-elegant { font-family: 'Great Vibes', cursive; }
+        .font-cursive { font-family: 'Dancing Script', cursive; }
+        .animate-float {
+            animation: float 20s linear infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.5; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+        }
+        .animate-heartbeat {
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .animate-whisper-float {
+            animation: whisper-float 3.5s forwards;
+        }
+        @keyframes whisper-float {
+            0% { transform: translate(-50%, 20px); opacity: 0; }
+            10% { transform: translate(-50%, 0); opacity: 1; }
+            90% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -20px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <!-- Loading Screen -->
+        <div style="position: fixed; inset: 0; background: linear-gradient(135deg, #fffafa 0%, #ffe4e6 100%); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div style="text-align: center;">
+                <div style="width: 100px; height: 100px; background: #f43f5e; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; animation: heartbeat 1.5s infinite;">
+                    <span style="color: white; font-size: 50px;">❤️</span>
+                </div>
+                <p style="color: #9f1239; font-family: 'Dancing Script', cursive; font-size: 28px;">
+                    Loading your sanctuary...
+                </p>
+                <p style="color: #fb7185; margin-top: 10px;">For Anu only</p>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="/index.js"></script>
+    
+    <script>
+        // Hide loading screen after 3 seconds
+        setTimeout(() => {
+            document.getElementById('root').firstElementChild.style.display = 'none';
+        }, 3000);
+    </script>
+</body>
+</html>
