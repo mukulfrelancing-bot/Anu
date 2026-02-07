@@ -78,3 +78,11 @@ export default {
         }
       },
       backdropBlur: {
+        xs: '2px',
+      },
+          },
+  },
+  plugins: [],
+}
+  [file content end]
+  
