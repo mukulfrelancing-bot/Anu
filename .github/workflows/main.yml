@@ -1,3 +1,5 @@
+[file name]: .github/workflows/main.yml
+[file content begin]
 name: Deploy to GitHub Pages
 
 on:
@@ -28,7 +30,7 @@ jobs:
           cache: 'npm'
       
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       
       - name: Build
         run: npm run build
@@ -53,3 +55,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+[file content end]
